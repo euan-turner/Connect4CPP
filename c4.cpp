@@ -1,6 +1,6 @@
 #include <iostream>
 #include <algorithm>
-#include "v2.h"
+#include "c4.h"
 
 using namespace std;
 
@@ -104,6 +104,17 @@ int Board :: getCounter() {
     return counter;
 }
 
+int Board :: evaluate() {
+    int score = 0;
+    for (int i = 0; i < 64; i++) {
+        if ((boards[0] & (LSB1 << i)) != 0) {
+            score += (EVENINT * evalBoard[i]);
+        } else if ((boards[0] & (LSB1 << i)) != 0) {
+            score += (ODDINT * evalBoard[i]);
+        }
+    }
+    return score;
+}
 
 
 
@@ -130,22 +141,7 @@ void Game :: turn() {
             }
         }
     } else {
-        //Odd player turn
-        bool validMove = false;
-        while (validMove == false) {
-            cout << "Enter column (1-7)\n:";
-            cin >> col;
-            if ((col > 7)||(col < 1)) {
-                cout <<"Invalid choice\n";
-                continue;
-            }
-            col --;
-            if (*find(valid.begin(), valid.end(), col) == col) {
-                validMove = true;
-            } else {
-                cout << "Column full\n";
-            }
-        }
+        col = bestMove();
     }
 
     board.makeMove(col);
@@ -159,6 +155,78 @@ void Game :: turn() {
         cout << "Game drawn\n";
         board.output();
         exit(0);
+    }
+}
+
+int Game :: bestMove() {
+    int bestMove;
+    int bestEval = NEGINF;
+
+    vector<int> validMoves = board.validMoves();
+    for (int m = 0; m < validMoves.size(); m++) {
+        int move = validMoves.at(m);
+
+        board.makeMove(move);
+        int moveEval = minimax(0, NEGINF, POSINF, false);
+        cout << move << ": " << moveEval << "\n";
+        board.undoMove();
+
+        if (moveEval > bestEval) {
+            bestEval = moveEval;
+            bestMove = move;
+        }
+    }
+    return bestMove;
+}
+
+int Game :: minimax(int depth, int alpha, int beta, bool isMax) {
+    int status = board.gameOver();
+    //cout << depth << "," << status << endl;
+    if (status == 0) {
+        return 0;
+    } else if (status == 1) {
+        if (isMax == true) {
+            return -10000 + depth;
+        } else {
+            return 10000 - depth;
+        }
+    } else if (depth == maxRecDepth) {
+        return board.evaluate();
+    } else {
+        vector<int> validMoves = board.validMoves();
+        int bestEval;
+
+        if (isMax == true) {
+            bestEval = NEGINF;
+            for (int m = 0; m < validMoves.size(); m++) {
+                int move = validMoves.at(m);
+
+                board.makeMove(move);
+                bestEval = max(bestEval, minimax(depth+1, alpha, beta, false));
+                board.undoMove();
+
+                if (bestEval >= beta) {
+                    break;
+                }
+                alpha = max(bestEval,alpha);
+            }
+            return bestEval;
+        } else {
+            bestEval = POSINF;
+            for (int m = 0; m < validMoves.size(); m++) {
+                int move = validMoves.at(m);
+
+                board.makeMove(move);
+                bestEval = min(bestEval, minimax(depth+1, alpha, beta, true));
+                board.undoMove();
+
+                if (bestEval <= alpha) {
+                    break;
+                }
+                beta = min(beta, bestEval);
+            }
+            return bestEval;
+        }
     }
 }
 

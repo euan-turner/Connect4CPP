@@ -1,1 +1,1 @@
-# Connect 4in C++
+# Connect 4 in C++
